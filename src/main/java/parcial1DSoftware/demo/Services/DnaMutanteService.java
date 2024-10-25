@@ -17,30 +17,24 @@ public class DnaMutanteService {
     private long contadorMutanteDna = 0;
     private long contadorHumanoDna = 0;
 
-    private static final int SECUENCIA_MUTANTE = 4;
-
     public boolean esMutante(String[] dna) {
 
         String dnaString = Arrays.toString(dna);
 
-        if (dnaMutanteRepository.existsByDna(dnaString)) {
-            throw new RuntimeException("El ADN ya ha sido registrado");
-        }
-
-        boolean isMutant = confirmacionMutante(dna);
+        boolean siEsMutante = confirmacionMutante(dna);
 
         DnaMutante dnaMutante = new DnaMutante();
         dnaMutante.setDna(dnaString);
-        dnaMutante.setMutant(isMutant);
+        dnaMutante.setMutant(siEsMutante);
         dnaMutanteRepository.save(dnaMutante);
 
-        if (isMutant) {
+        if (siEsMutante) {
             contadorMutanteDna++;
         } else {
             contadorHumanoDna++;
         }
 
-        return isMutant;
+        return siEsMutante;
     }
 
     public Map<String, Object> getEstadisticas() {
@@ -53,71 +47,93 @@ public class DnaMutanteService {
     }
 
     public boolean confirmacionMutante(String[] dna) {
-        int length = dna.length;
-        int secuenciasEncontradas = 0;
-
-        for (int row = 0; row < length; row++) {
-            for (int col = 0; col < length; col++) {
-                if (col <= length - SECUENCIA_MUTANTE && verificaHorizontal(dna, row, col)) {
-                    secuenciasEncontradas++;
-                }
-                if (row <= length - SECUENCIA_MUTANTE && verificaVertical(dna, row, col)) {
-                    secuenciasEncontradas++;
-                }
-                if (row <= length - SECUENCIA_MUTANTE && col <= length - SECUENCIA_MUTANTE && verificaDiagonalDerecha(dna, row, col)) {
-                    secuenciasEncontradas++;
-                }
-                if (row <= length - SECUENCIA_MUTANTE && col >= SECUENCIA_MUTANTE - 1 && verificaDiagonalIzquierda(dna, row, col)) {
-                    secuenciasEncontradas++;
-                }
-
-                // Si se encuentran más de una secuencia, confirmamos que es mutante y detenemos la búsqueda
-                if (secuenciasEncontradas > 1) {
-                    return true;
-                }
-            }
+        if (dna == null || dna.length == 0) {
+            throw new IllegalArgumentException("El DNA no puede ser nulo o vacío.");
         }
 
-        return false;
+        int n = dna.length;
+        validarFormatoDna(dna, n);
+        int secuenciasEncontradas = contarSecuencias(dna, n, 0, 0, 0);
+
+        return secuenciasEncontradas >= 2;
     }
 
-    private boolean verificaHorizontal(String[] dna, int row, int col) {
-        char inicial = dna[row].charAt(col);
-        for (int i = 1; i < SECUENCIA_MUTANTE; i++) {
-            if (dna[row].charAt(col + i) != inicial) {
-                return false;
-            }
-        }
-        return true;
+    private void validarFormatoDna(String[] dna, int n) {
+        validarFila(dna, n, 0);
     }
 
-    private boolean verificaVertical(String[] dna, int row, int col) {
-        char inicial = dna[row].charAt(col);
-        for (int i = 1; i < SECUENCIA_MUTANTE; i++) {
-            if (dna[row + i].charAt(col) != inicial) {
-                return false;
-            }
+    private void validarFila(String[] dna, int n, int index) {
+        if (index >= n) return;
+
+        String row = dna[index];
+        if (row.length() != n) {
+            throw new IllegalArgumentException("Todas las filas deben tener la misma longitud. El DNA debe ser cuadrado (NxN)");
         }
-        return true;
+        if (!row.matches("[ATCG]+")) {
+            throw new IllegalArgumentException("El DNA contiene caracteres no válidos. Solo se permiten A, T, C, G.");
+        }
+
+        validarFila(dna, n, index + 1);
     }
 
-    private boolean verificaDiagonalDerecha(String[] dna, int row, int col) {
-        char inicial = dna[row].charAt(col);
-        for (int i = 1; i < SECUENCIA_MUTANTE; i++) {
-            if (dna[row + i].charAt(col + i) != inicial) {
-                return false;
-            }
+    // Método principal de recursión para buscar secuencias
+    private int contarSecuencias(String[] dna, int n, int row, int col, int secuenciasEncontradas) {
+        if (row >= n) return secuenciasEncontradas;
+        if (col <= n - 4 && checkSequence(dna, row, col, 0, 1)) {
+            secuenciasEncontradas++;
         }
-        return true;
+        if (row <= n - 4 && checkSequence(dna, row, col, 1, 0)) {
+            secuenciasEncontradas++;
+        }
+        if (row <= n - 4 && col <= n - 4 && checkSequence(dna, row, col, 1, 1)) {
+            secuenciasEncontradas++;
+        }
+        if (row <= n - 4 && col >= 3 && checkSequence(dna, row, col, 1, -1)) {
+            secuenciasEncontradas++;
+        }
+
+        if (secuenciasEncontradas >= 2) return secuenciasEncontradas;
+        if (col + 1 < n) {
+            return contarSecuencias(dna, n, row, col + 1, secuenciasEncontradas);
+        } else {
+            return contarSecuencias(dna, n, row + 1, 0, secuenciasEncontradas);
+        }
     }
 
-    private boolean verificaDiagonalIzquierda(String[] dna, int row, int col) {
-        char inicial = dna[row].charAt(col);
-        for (int i = 1; i < SECUENCIA_MUTANTE; i++) {
-            if (dna[row + i].charAt(col - i) != inicial) {
-                return false;
-            }
+    private boolean checkSequence(String[] dna, int row, int col, int rowDir, int colDir) {
+        return checkRecursively(dna, row, col, rowDir, colDir, dna[row].charAt(col), 1);
+    }
+
+    private boolean checkRecursively(String[] dna, int row, int col, int rowDir, int colDir, char target, int count) {
+        if (count == 4) return true;  // Encontró una secuencia de 4 iguales
+        if (row + rowDir >= dna.length || col + colDir >= dna.length || row + rowDir < 0 || col + colDir < 0) {
+            return false;
         }
-        return true;
+        if (dna[row + rowDir].charAt(col + colDir) != target) {
+            return false;
+        }
+
+        return checkRecursively(dna, row + rowDir, col + colDir, rowDir, colDir, target, count + 1);
+    }
+
+    public boolean delete(Long id) throws Exception{
+        try{
+            if (dnaMutanteRepository.existsById(id)){
+                dnaMutanteRepository.deleteById(id);
+                return true;
+            }else{
+                throw new Exception();
+            }
+        }catch (Exception e){
+            throw new Exception(e.getMessage());
+        }
+    }
+    public boolean deleteAll() throws Exception{
+        try{
+            dnaMutanteRepository.deleteAll();
+            return true;
+        }catch (Exception e){
+            throw new Exception(e.getMessage());
+        }
     }
 }

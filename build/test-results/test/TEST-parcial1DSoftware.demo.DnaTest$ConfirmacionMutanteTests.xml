@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Pruebas de Confirmación de Mutante" tests="1" skipped="0" failures="0" errors="0" timestamp="2024-10-21T18:35:49" hostname="DESKTOP-6O0OTH9" time="0.031">
+  <properties/>
+  <testcase name="Debería confirmar que el DNA es mutante" classname="parcial1DSoftware.demo.DnaTest$ConfirmacionMutanteTests" time="0.031"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import parcial1DSoftware.demo.Entities.DnaMutante;
 import parcial1DSoftware.demo.Services.DnaMutanteService;
 
 import java.util.Map;
@@ -26,17 +25,25 @@ public class DnaMutanteController {
         boolean isMutant = dnaMutanteService.esMutante(dna);
 
         if (isMutant) {
-            return ResponseEntity.ok().build(); // Respuesta 200 OK para mutantes
+            return ResponseEntity.ok().body("{\"mensaje\":\"El DNA es totalmente mutante.\"}"); // Respuesta 200 OK para mutantes
         } else {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build(); // Respuesta 403 Forbidden para humanos
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("{\"mensaje\":\"El DNA es humano.\"}"); // Respuesta 403 Forbidden para humanos
         }
     }
-    @GetMapping("/stats")
-    public ResponseEntity<?> estadisticasMutantes(){
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<?> deleteMutante(@PathVariable Long id){
         try{
-            return ResponseEntity.status(HttpStatus.OK).body(dnaMutanteService.getEstadisticas());
+            return ResponseEntity.status(HttpStatus.OK).body(dnaMutanteService.delete(id));
         }catch (Exception e){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("{\"error\":\"Error. Porfavor intente más tarde.\"}");
+        }
+    }
+    @DeleteMapping("/deleteAll")
+    public ResponseEntity<?> deleteMutante(){
+        try{
+            return ResponseEntity.status(HttpStatus.OK).body(dnaMutanteService.deleteAll());
+        }catch (Exception e){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("{\"error\":\"Error. Porfavor intente más tarde.\"}");
         }
     }
 }
